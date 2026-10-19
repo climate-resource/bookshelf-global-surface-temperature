@@ -13,7 +13,9 @@ import bookshelf
 
 from surface_temperature import (
     DATASETS,
+    compare_assessments,
     compute_offsets,
+    load_assessments,
     load_baselines,
     read_native,
     rebase,
@@ -24,6 +26,7 @@ from surface_temperature import (
 # %%
 build = bookshelf.setup()
 baselines, bridge = load_baselines(Path("baselines.yaml"))
+assessments = load_assessments(Path("assessments.yaml"), baselines)
 
 # %%
 names = [name for d in DATASETS for name in d.inputs]
@@ -41,11 +44,11 @@ monthly = rebase(native_monthly, offsets)
 offsets.pivot(index="dataset", columns="baseline", values="offset")
 
 # %% [markdown]
-# Every dataset on 1850-1900, as a sense check against AR6's 1.09 K for 2011-2020.
+# Each dataset beside the published estimates in `assessments.yaml`.
 
 # %%
-central = annual[(annual["baseline"] == "1850-1900") & (annual["statistic"] == "central")]
-central[central["year"].between(2011, 2020)].groupby("dataset")["value"].mean().round(2)
+comparison = compare_assessments(annual, assessments)
+comparison[["reference", "period", "assessed", "dataset", "observed", "difference"]]
 
 # %% [markdown]
 # ## Record
@@ -57,6 +60,7 @@ build.book.write("native_monthly", native_monthly, type="tabular", used=used)
 build.book.write("annual", to_timeseries(annual), type="timeseries", used=used)
 build.book.write("monthly", monthly, type="tabular", used=used)
 build.book.write("offsets", offsets, type="tabular", used=used)
+build.book.write("assessments", comparison, type="tabular", used=used)
 
 readme = render_readme(
     version=build.book.metadata.version,
@@ -65,6 +69,7 @@ readme = render_readme(
     monthly=native_monthly,
     annual=native_annual,
     offsets=offsets,
+    comparison=comparison,
     sources=json.loads(Path(inputs["sources"].path).read_text()),
 )
 build.book.write("readme", readme.encode(), type="document", used=used, format="md")
