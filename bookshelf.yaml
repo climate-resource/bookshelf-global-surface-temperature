@@ -12,13 +12,12 @@ defaults:
   title: Global surface temperature
   description: >-
     Observed global mean surface temperature anomalies from HadCRUT5, NOAAGlobalTemp,
-    GISTEMP, Berkeley Earth, ERA5 and JMA.
+    GISTEMP, ERA5 and JMA.
     Each series is published on its native baseline and on a common set of baselines
     drawn from IPCC AR6 and WMO, with the offsets between them and a README defining both.
   publisher: Climate Resource
   repository_url: https://github.com/climate-resource/bookshelf-global-surface-temperature
-  # Berkeley Earth's high-resolution series is preliminary and non-commercial.
-  visibility: org
+  visibility: public
   authors:
     - name: Jared Lewis
       email: jared.lewis@climate-resource.com
@@ -28,15 +27,18 @@ defaults:
   limitations: >-
     Each book is one monthly snapshot of operational products that revise their history.
     Bounds are shifted with the central value and leave out baseline-mean uncertainty.
+    Berkeley Earth is left out because its CC-BY-NC licence would carry into every derived entry.
     JRA-3Q, DCENT, China-MST and Kadow et al. are not yet included.
   resources:
     hadcrut5_monthly:
       type: tabular
       license: OGL-UK-3.0
+      license_url: https://www.metoffice.gov.uk/hadobs/hadcrut5/terms_and_conditions.html
       citation: Morice et al. (2021), https://doi.org/10.1029/2019JD032361
     hadcrut5_annual:
       type: tabular
       license: OGL-UK-3.0
+      license_url: https://www.metoffice.gov.uk/hadobs/hadcrut5/terms_and_conditions.html
       citation: Morice et al. (2021), https://doi.org/10.1029/2019JD032361
     noaaglobaltemp_monthly:
       type: document
@@ -50,25 +52,17 @@ defaults:
       type: tabular
       license: LicenseRef-US-Government-Public-Domain
       citation: GISTEMP Team (2026), GISS Surface Temperature Analysis v4, https://data.giss.nasa.gov/gistemp/
-    berkeley_monthly:
-      type: document
-      license: CC-BY-NC-4.0
-      citation: Berkeley Earth high-resolution dataset (preliminary), https://berkeleyearth.org/data/
-    berkeley_annual:
-      type: document
-      license: CC-BY-NC-4.0
-      citation: Berkeley Earth high-resolution dataset (preliminary), https://berkeleyearth.org/data/
     era5_daily:
       type: tabular
       license: CC-BY-4.0
       citation: Copernicus Climate Change Service, Climate Pulse, https://pulse.climate.copernicus.eu/
     jma_monthly:
       type: tabular
-      license: LicenseRef-JMA-Terms-of-Use
+      license: LicenseRef-Japan-Public-Data-License-1.0
       license_url: https://www.jma.go.jp/jma/en/copyright.html
     jma_annual:
       type: tabular
-      license: LicenseRef-JMA-Terms-of-Use
+      license: LicenseRef-Japan-Public-Data-License-1.0
       license_url: https://www.jma.go.jp/jma/en/copyright.html
     sources:
       type: document
@@ -80,16 +74,14 @@ build:
 # One book per monthly snapshot, taken with `scripts/snapshot.py`.
 books:
   - version: "2026.10"
-    license: CC-BY-NC-4.0
-    license_url: https://creativecommons.org/licenses/by-nc/4.0/
+    license: CC-BY-4.0
+    license_url: https://creativecommons.org/licenses/by/4.0/
     resources:
       hadcrut5_monthly: {path: inputs/2026.10/hadcrut5_monthly.csv}
       hadcrut5_annual: {path: inputs/2026.10/hadcrut5_annual.csv}
       noaaglobaltemp_monthly: {path: inputs/2026.10/noaaglobaltemp_monthly.asc}
       noaaglobaltemp_annual: {path: inputs/2026.10/noaaglobaltemp_annual.asc}
       gistemp: {path: inputs/2026.10/gistemp.csv}
-      berkeley_monthly: {path: inputs/2026.10/berkeley_monthly.txt}
-      berkeley_annual: {path: inputs/2026.10/berkeley_annual.txt}
       era5_daily: {path: inputs/2026.10/era5_daily.csv}
       jma_monthly: {path: inputs/2026.10/jma_monthly.csv}
       jma_annual: {path: inputs/2026.10/jma_annual.csv}

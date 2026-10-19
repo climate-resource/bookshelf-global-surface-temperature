@@ -31,6 +31,7 @@ class Dataset:
     licence: str
     uncertainty: str
     notes: str = ""
+    attribution: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -79,14 +80,17 @@ def _bounds(frame: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
     return frame.melt(id_vars=keys, value_vars=present, var_name="statistic", value_name="value")
 
 
-def _read_whitespace(path: Path, comment: str | None = None) -> pd.DataFrame:
-    return pd.read_csv(path, sep=r"\s+", header=None, comment=comment, na_values=["NaN"])
+def _read_whitespace(path: Path) -> pd.DataFrame:
+    return pd.read_csv(path, sep=r"\s+", header=None)
 
 
 def parse_hadcrut(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Read the HadCRUT5 summary series, whose bounds are the 2.5% and 97.5% limits."""
     names = {"Anomaly (deg C)": "central"}
-    names |= {"Lower confidence limit (2.5%)": "lower", "Upper confidence limit (97.5%)": "upper"}
+    names |= {
+        "Lower confidence limit (2.5%)": "lower",
+        "Upper confidence limit (97.5%)": "upper",
+    }
     monthly = pd.read_csv(paths["hadcrut5_monthly"]).rename(columns=names)
     monthly[["year", "month"]] = monthly["Time"].str.split("-", expand=True).astype(int)
     annual = pd.read_csv(paths["hadcrut5_annual"]).rename(columns=names | {"Time": "year"})
@@ -110,18 +114,6 @@ def parse_gistemp(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame
     return _monthly_from_wide(table), annual
 
 
-def parse_berkeley(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Read Berkeley Earth, whose uncertainty is a 95% half-width."""
-    monthly = _read_whitespace(paths["berkeley_monthly"], comment="%").iloc[:, :4]
-    monthly.columns = ["year", "month", "central", "unc"]
-    annual = _read_whitespace(paths["berkeley_annual"], comment="%").iloc[:, :3]
-    annual.columns = ["year", "central", "unc"]
-    for frame in (monthly, annual):
-        frame["lower"] = frame["central"] - frame["unc"]
-        frame["upper"] = frame["central"] + frame["unc"]
-    return _bounds(monthly, ["year", "month"]), _bounds(annual, ["year"])
-
-
 def parse_era5(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Average the ERA5 daily series to complete months and complete years."""
     daily = pd.read_csv(paths["era5_daily"], comment="#", parse_dates=["date"])
@@ -130,9 +122,13 @@ def parse_era5(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
     days = [calendar.monthrange(y, m)[1] for y, m in zip(by_month["year"], by_month["month"])]
     monthly = by_month[by_month["size"] == days]
     by_year = daily.groupby("year")["ano_91-20"].agg(["mean", "size"]).reset_index()
-    annual = by_year[by_year["size"] == [366 if calendar.isleap(y) else 365 for y in by_year["year"]]]
+    annual = by_year[
+        by_year["size"] == [366 if calendar.isleap(y) else 365 for y in by_year["year"]]
+    ]
     return (
-        monthly.rename(columns={"mean": "value"})[["year", "month", "value"]].assign(statistic="central"),
+        monthly.rename(columns={"mean": "value"})[["year", "month", "value"]].assign(
+            statistic="central"
+        ),
         annual.rename(columns={"mean": "value"})[["year", "value"]].assign(statistic="central"),
     )
 
@@ -165,6 +161,12 @@ DATASETS = (
         parse=parse_hadcrut,
         homepage="https://www.metoffice.gov.uk/hadobs/hadcrut5/",
         licence="Open Government Licence v3",
+        attribution=(
+            "HadCRUT.5.2.0.0 data were obtained from http://www.metoffice.gov.uk/hadobs/hadcrut5",
+            "on the retrieval date above and are © British Crown Copyright, Met Office 2026,",
+            "provided under an Open Government License,",
+            "http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/.",
+        ),
         uncertainty="2.5% and 97.5% limits of the 200-member ensemble plus coverage uncertainty",
     ),
     Dataset(
@@ -192,19 +194,6 @@ DATASETS = (
         uncertainty="None published in the global series file",
     ),
     Dataset(
-        id="Berkeley Earth",
-        name="Berkeley Earth high-resolution land and ocean",
-        producer="Berkeley Earth",
-        quantity="GMST",
-        native_baseline="1951-1980",
-        inputs=("berkeley_monthly", "berkeley_annual"),
-        parse=parse_berkeley,
-        homepage="https://berkeleyearth.org/data/",
-        licence="CC-BY-NC-4.0",
-        uncertainty="95% confidence interval",
-        notes="Preliminary and not yet peer reviewed. Air temperature is used over sea ice.",
-    ),
-    Dataset(
         id="ERA5",
         name="ERA5 global mean 2m temperature (Climate Pulse)",
         producer="Copernicus Climate Change Service / ECMWF",
@@ -214,6 +203,10 @@ DATASETS = (
         parse=parse_era5,
         homepage="https://pulse.climate.copernicus.eu/",
         licence="CC-BY-4.0",
+        attribution=(
+            "ERA5 contains modified Copernicus Climate Change Service information.",
+            "Neither the European Commission nor ECMWF is responsible for any use made of it.",
+        ),
         uncertainty="None",
         notes=(
             "Reanalysis air temperature everywhere, so GSAT rather than GMST. "
@@ -230,7 +223,13 @@ DATASETS = (
         inputs=("jma_monthly", "jma_annual"),
         parse=parse_jma,
         homepage="https://ds.data.jma.go.jp/tcc/tcc/products/gwp/temp/ann_wld.html",
-        licence="JMA Terms of Use (compatible with CC-BY-4.0)",
+        licence="Public Data License v1.0 (compatible with CC-BY-4.0)",
+        attribution=(
+            "Based on JMA global average surface temperature anomalies"
+            " (Japan Meteorological Agency),",
+            "https://ds.data.jma.go.jp/tcc/tcc/products/gwp/temp/ann_wld.html,",
+            "rebased by Climate Resource.",
+        ),
         uncertainty="None",
         notes="The latest month may be preliminary.",
     ),
@@ -249,7 +248,7 @@ def read_native(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
         m = m.dropna(subset=["value"]).astype({"year": int, "month": int})
         a = a.dropna(subset=["value"]).astype({"year": int})
         months = m[m["statistic"] == "central"].groupby("year").size()
-        a = a[a["year"].isin(months[months == 12].index)]
+        a = a[a["year"].isin(months[months == len(MONTHS)].index)]
         meta = {"dataset": d.id, "quantity": d.quantity, "baseline": d.native_baseline}
         monthly.append(m.assign(**meta))
         annual.append(a.assign(**meta))
@@ -277,26 +276,34 @@ def compute_offsets(
     central = annual[annual["statistic"] == "central"].pivot(
         index="year", columns="dataset", values="value"
     )
-    bridge = next(b for b in baselines if b.id == bridge_id)
-    bridge_means = {d: _period_mean(central[d], bridge) for d in central}
+    means = {b.id: {d: _period_mean(central[d], b) for d in central} for b in baselines}
+    bridge_means = means[bridge_id]
     if missing := [d for d, mean in bridge_means.items() if mean is None]:
         raise ValueError(f"{missing} do not cover the bridge period {bridge_id}")
 
     rows = []
     for b in baselines:
-        means = {d: _period_mean(central[d], b) for d in central}
-        covering = sorted(d for d, mean in means.items() if mean is not None)
-        gaps = [bridge_means[d] - means[d] for d in covering]
+        covering = sorted(d for d, mean in means[b.id].items() if mean is not None)
+        gaps = [bridge_means[d] - means[b.id][d] for d in covering]
+        gap = sum(gaps) / len(gaps) if gaps else None
+        contributors = ", ".join(covering)
         for d in central:
-            if means[d] is not None:
-                rows.append((d, b.id, means[d], "direct", None, None, None))
-            elif gaps:
-                gap = sum(gaps) / len(gaps)
-                contributors = ", ".join(covering)
-                rows.append((d, b.id, bridge_means[d] - gap, "bridged", bridge_id, gap, contributors))
+            if means[b.id][d] is not None:
+                rows.append((d, b.id, means[b.id][d], "direct", None, None, None))
+            elif gap is not None:
+                offset = bridge_means[d] - gap
+                rows.append((d, b.id, offset, "bridged", bridge_id, gap, contributors))
             else:
                 raise ValueError(f"no dataset covers both {b.id} and the bridge {bridge_id}")
-    columns = ["dataset", "baseline", "offset", "method", "bridge", "bridge_gap", "bridge_datasets"]
+    columns = [
+        "dataset",
+        "baseline",
+        "offset",
+        "method",
+        "bridge",
+        "bridge_gap",
+        "bridge_datasets",
+    ]
     offsets = pd.DataFrame(rows, columns=columns)
     return offsets.round({"offset": DECIMALS, "bridge_gap": DECIMALS})
 
@@ -333,7 +340,8 @@ def _table(header: list[str], rows: list[list[object]]) -> str:
     return "\n".join(lines)
 
 
-def render_readme(
+def render_readme(  # noqa: PLR0913
+    *,
     version: str,
     baselines: list[Baseline],
     bridge_id: str,
@@ -345,10 +353,10 @@ def render_readme(
     """Write the README that ships in the book, defining every baseline and offset."""
     retrieved = sources["retrieved"]
     out = [
-        f"# Global surface temperature: snapshot {version}",
+        "# Global surface temperature",
         "",
-        "Observed global mean surface temperature anomalies from the major datasets,",
-        f"as their producers published them on {retrieved}.",
+        "Observed global mean surface temperature anomalies,",
+        f"as their producers published them on {retrieved} (snapshot {version}).",
         "Each series is given on its native baseline and on every baseline below.",
         "The offsets used to move between them are tabled here and published as `offsets`.",
         "",
@@ -357,12 +365,21 @@ def render_readme(
         _table(
             ["Entry", "Holds"],
             [
-                ["`native_annual`", "Annual anomalies on each producer's baseline (timeseries)"],
+                [
+                    "`native_annual`",
+                    "Annual anomalies on each producer's baseline (timeseries)",
+                ],
                 ["`native_monthly`", "Monthly anomalies on each producer's baseline"],
-                ["`annual`", "Annual anomalies on every baseline, one row set per baseline (timeseries)"],
+                [
+                    "`annual`",
+                    "Annual anomalies on every baseline, one row set per baseline (timeseries)",
+                ],
                 ["`monthly`", "Monthly anomalies on every baseline"],
-                ["`offsets`", "What was subtracted from each native series for each baseline"],
-                ["`README`", "This document"],
+                [
+                    "`offsets`",
+                    "What was subtracted from each native series for each baseline",
+                ],
+                ["`readme`", "This document"],
             ],
         ),
         "",
@@ -392,8 +409,16 @@ def render_readme(
         )
     out += [
         _table(
-            ["Dataset", "Producer", "Quantity", "Native baseline", "Complete years", "Latest month",
-             "Bounds", "Licence"],
+            [
+                "Dataset",
+                "Producer",
+                "Quantity",
+                "Native baseline",
+                "Complete years",
+                "Latest month",
+                "Bounds",
+                "Licence",
+            ],
             rows,
         ),
         "",
@@ -402,11 +427,20 @@ def render_readme(
         "AR6 assesses their long-term changes as identical, differing by at most 10%.",
         "",
     ]
-    out += [f"- **{d.id}**: {d.name}. {d.notes} <{d.homepage}>".replace(".  ", ". ") for d in DATASETS]
+    out += [
+        f"- **{d.id}**: {d.name}. {d.notes} <{d.homepage}>".replace(".  ", ". ") for d in DATASETS
+    ]
     out += ["", "## Baselines", ""]
     for b in baselines:
         reference = f"[{b.reference}]({b.reference_url})" if b.reference_url else b.reference
-        out += [f"### {b.id}: {b.name}", "", b.use.strip(), "", f"Reference: {reference}.", ""]
+        out += [
+            f"### {b.id}: {b.name}",
+            "",
+            b.use.strip(),
+            "",
+            f"Reference: {reference}.",
+            "",
+        ]
         for a in b.assessed:
             low, high = a["very_likely"]
             out += [
@@ -419,8 +453,10 @@ def render_readme(
         "## Offsets",
         "",
         "A value on a baseline is the native value minus that dataset's offset for the baseline.",
-        "Bounds move with the central value, so they leave out the uncertainty of the baseline mean.",
-        "Monthly values take the annual offset, so each keeps the seasonal cycle its producer removed.",
+        "Bounds move with the central value,",
+        "so they leave out the uncertainty of the baseline mean.",
+        "Monthly values take the annual offset,",
+        "so each keeps the seasonal cycle its producer removed.",
         "",
         "A dataset with every year of a baseline is rebased onto it directly (`direct`).",
         f"A dataset that starts later is rebased onto {bridge_id},",
@@ -432,21 +468,28 @@ def render_readme(
         "",
     ]
     ids = [b.id for b in baselines]
-    grid = []
-    for d in DATASETS:
-        rows_d = offsets[offsets["dataset"] == d.id].set_index("baseline")
-        cells = [
-            f"{rows_d.loc[i, 'offset']:+.3f}" + (" †" if rows_d.loc[i, "method"] == "bridged" else "")
-            for i in ids
+    table = offsets.pivot(index="dataset", columns="baseline", values=["offset", "method"])
+    grid = [
+        [
+            d.id,
+            *(
+                f"{table.loc[d.id, ('offset', i)]:+.3f}"
+                + (" †" if table.loc[d.id, ("method", i)] == "bridged" else "")
+                for i in ids
+            ),
         ]
-        grid.append([d.id, *cells])
+        for d in DATASETS
+    ]
     out += [_table(["Dataset", *ids], grid), ""]
     gaps = offsets[offsets["method"] == "bridged"].drop_duplicates("baseline")
     if len(gaps):
         out += [
             _table(
                 ["Baseline", f"Mean {bridge_id} minus baseline (K)", "From"],
-                [[g.baseline, f"{g.bridge_gap:+.3f}", g.bridge_datasets] for g in gaps.itertuples()],
+                [
+                    [g.baseline, f"{g.bridge_gap:+.3f}", g.bridge_datasets]
+                    for g in gaps.itertuples()
+                ],
             ),
             "",
         ]
@@ -461,10 +504,10 @@ def render_readme(
         "",
         "## Licence",
         "",
-        "Each dataset keeps its producer's licence, listed above.",
-        "Berkeley Earth is CC-BY-NC-4.0, so the combined entries are for non-commercial use.",
-        "ERA5 contains modified Copernicus Climate Change Service information.",
-        "Neither the European Commission nor ECMWF is responsible for any use made of it.",
+        "This book is CC-BY-4.0.",
+        "Each dataset's own licence, listed above, permits redistributing derived data",
+        "with attribution, so credit the producers as well as this book.",
+        *(line for d in DATASETS if d.attribution for line in ("", *d.attribution)),
         "",
     ]
     return "\n".join(out)

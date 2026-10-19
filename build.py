@@ -23,7 +23,6 @@ from surface_temperature import (
 
 # %%
 build = bookshelf.setup()
-version = build.book.metadata.version
 baselines, bridge = load_baselines(Path("baselines.yaml"))
 
 # %%
@@ -59,7 +58,14 @@ build.book.write("annual", to_timeseries(annual), type="timeseries", used=used)
 build.book.write("monthly", monthly, type="tabular", used=used)
 build.book.write("offsets", offsets, type="tabular", used=used)
 
-sources = json.loads(Path(inputs["sources"].path).read_text())
-readme = render_readme(version, baselines, bridge, native_monthly, native_annual, offsets, sources)
+readme = render_readme(
+    version=build.book.metadata.version,
+    baselines=baselines,
+    bridge_id=bridge,
+    monthly=native_monthly,
+    annual=native_annual,
+    offsets=offsets,
+    sources=json.loads(Path(inputs["sources"].path).read_text()),
+)
 build.book.write("readme", readme.encode(), type="document", used=used, format="md")
 build.book.publish()

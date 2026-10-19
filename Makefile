@@ -36,9 +36,9 @@ ruff-fixes:  ## fix the code using ruff
 	uvx ruff@0.17.0 check --fix
 	uvx ruff@0.17.0 format
 
-#.PHONY: test
-#test:  ## run the tests
-#	uv run pytest src tests -r a -v --doctest-modules --cov=src
+.PHONY: test
+test:  ## run the tests
+	uv run pytest
 
 .PHONY: virtual-environment
 virtual-environment:  ## update virtual environment, create a new one if it doesn't already exist

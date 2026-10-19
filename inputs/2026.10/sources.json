@@ -13,14 +13,6 @@
       "url": "https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv",
       "sha256": "4c64eda288bce32b8d76926278f346ecea1e53506df8ee72a3d5accb0657c416"
     },
-    "berkeley_monthly.txt": {
-      "url": "https://storage.googleapis.com/berkeley-earth-temperature-hr/global/Global_TAVG_monthly.txt",
-      "sha256": "587c2143f4de5e5c6ebf61c542ed3ded74f5a01551281364348f522b4ab183c0"
-    },
-    "berkeley_annual.txt": {
-      "url": "https://storage.googleapis.com/berkeley-earth-temperature-hr/global/Global_TAVG_annual.txt",
-      "sha256": "dc0e317295dfc047fb28d5b8d263c1e657486ed01bbc6a2cbb8782d1e6ae631e"
-    },
     "era5_daily.csv": {
       "url": "https://sites.ecmwf.int/data/climatepulse/data/series/era5_daily_series_2t_global.csv",
       "sha256": "7419051a24834966b7decca18e037e200f2ed8c98ce925296de0e691c7f07e70"

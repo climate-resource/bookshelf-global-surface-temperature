@@ -16,15 +16,12 @@ from pathlib import Path
 
 HADCRUT = "https://hadleyserver.metoffice.gov.uk/hadcrut5/data/HadCRUT.5.2.0.0/analysis/diagnostics"
 NOAA = "https://www.ncei.noaa.gov/data/noaa-global-surface-temperature/v6.1/access/timeseries"
-BERKELEY = "https://storage.googleapis.com/berkeley-earth-temperature-hr/global"
 JMA = "https://ds.data.jma.go.jp/tcc/tcc/products/gwp/temp/list/csv"
 
 FIXED = {
     "hadcrut5_monthly.csv": f"{HADCRUT}/HadCRUT.5.2.0.0.analysis.summary_series.global.monthly.csv",
     "hadcrut5_annual.csv": f"{HADCRUT}/HadCRUT.5.2.0.0.analysis.summary_series.global.annual.csv",
     "gistemp.csv": "https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv",
-    "berkeley_monthly.txt": f"{BERKELEY}/Global_TAVG_monthly.txt",
-    "berkeley_annual.txt": f"{BERKELEY}/Global_TAVG_annual.txt",
     "era5_daily.csv": "https://sites.ecmwf.int/data/climatepulse/data/series/era5_daily_series_2t_global.csv",
     "jma_monthly.csv": f"{JMA}/mon_wld.csv",
     "jma_annual.csv": f"{JMA}/year_wld.csv",
@@ -66,7 +63,10 @@ def main() -> None:
         (target / name).write_bytes(data)
         sources[name] = {"url": url, "sha256": hashlib.sha256(data).hexdigest()}
         print(f"{name}: {len(data)} bytes")
-    manifest = {"retrieved": datetime.now(UTC).isoformat(timespec="seconds"), "files": sources}
+    manifest = {
+        "retrieved": datetime.now(UTC).isoformat(timespec="seconds"),
+        "files": sources,
+    }
     (target / "sources.json").write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"Add a book for version {version} to bookshelf.yaml, copying the previous one.")
 

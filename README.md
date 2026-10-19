@@ -1,43 +1,71 @@
 # Global Surface Temperature
 
-Observed global mean surface temperature from the major datasets, on their native and common baselines.
+Observed global mean surface temperature anomalies from the major datasets,
+published on their native baselines and on a common set of baselines from IPCC AR6 and WMO.
 
 This repository is a feedstock containing code that turns upstream data into books on the
 [bookshelf](https://github.com/climate-resource/bookshelf).
 
-The two key files for a bookshelf feedstock are:
+## Datasets
 
-- `bookshelf.yaml` is the recipe declaring the metadata, versions and required versions.
-- `build.py` is the script to process a given version of a dataset into data ready for the bookshelf.
+| Dataset        | Quantity | Native baseline | Bounds | Source file                     |
+| -------------- | -------- | --------------- | ------ | ------------------------------- |
+| HadCRUT5       | GMST     | 1961-1990       | 95%    | Summary series, monthly, annual |
+| NOAAGlobalTemp | GMST     | 1991-2020       | none   | `aravg` land-ocean 90S-90N      |
+| GISTEMP v4     | GMST     | 1951-1980       | none   | `GLB.Ts+dSST.csv`               |
+| ERA5           | GSAT     | 1991-2020       | none   | Climate Pulse daily series      |
+| JMA            | GMST     | 1991-2020       | none   | Global monthly and annual CSV   |
 
-## Getting started
+Berkeley Earth is left out because its CC-BY-NC licence would carry into every derived entry,
+and the book is CC-BY-4.0.
 
-Install the local virtual environment:
+JRA-3Q only publishes gridded fields, so it needs its own global averaging before it can join.
+DCENT, China-MST and Kadow et al. are research releases on an irregular cadence and are not yet included.
+
+## What a book holds
+
+- `native_annual` and `native_monthly`: each series on its producer's baseline.
+- `annual` and `monthly`: each series on every baseline in `baselines.yaml`.
+- `offsets`: what was subtracted from each native series for each baseline, and how it was found.
+- `readme`: the definition of every baseline, the offsets table and the source of every file.
+
+A dataset with every year of a baseline is rebased onto it directly.
+One that starts later, such as ERA5 for 1850-1900,
+is rebased onto the bridge period and shifted by the gap the covering datasets agree on.
+
+## Files
+
+- `bookshelf.yaml` is the recipe: the metadata, and one book per monthly snapshot.
+- `build.py` reads one snapshot and writes the book.
+- `surface_temperature.py` holds the parsers, the rebasing and the README template.
+- `baselines.yaml` defines the baselines and the bridge period.
+- `scripts/snapshot.py` downloads the upstream files into `inputs/<version>/`.
+
+## Taking a new snapshot
+
+Upstream files are overwritten in place each month, so every book reads a checked-in copy.
 
 ```bash
-   make virtual-environment
+uv run python scripts/snapshot.py 2026.11
 ```
 
-Then build one version of the dataset:
+Then add a book for `2026.11` to `bookshelf.yaml`, copying the previous one with the new paths,
+and build it:
 
 ```bash
-   make run VERSION=v0.1.0
+make run VERSION=2026.11
 ```
 
-`VERSION` picks one entry from `books:` in the recipe.
-The result lands in `bundle/v0.1.0` and is then validated.
-This does not upload the result, but can be inspected locally.
+## Adding a baseline
+
+Add an entry to `baselines.yaml` with its years, name, use and reference.
+The next edition of every book gains rows for it in `annual`, `monthly` and `offsets`,
+and a section in the README.
+No entry is renamed, so nothing reading the book has to change.
 
 ## Publishing
 
 Each pull request builds a preview for each version declared in `bookshelf.yaml`.
-A URL to review the diff between the published versions and the built version are commented to the pull request.
 Merging publishes that preview to the bookshelf.
-
-If the recipe names a `bookshelf://` input that only the organisation can read,
-CI resolves it with the workflow's own GitHub Actions token rather than a stored secret.
-That needs the Bookshelf GitHub App installed on this repository,
-otherwise the build works locally but every record job fails in CI.
-
 Everything else about this feedstock lives in the README of
 [copier-bookshelf-dataset](https://github.com/climate-resource/copier-bookshelf-dataset).
