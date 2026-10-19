@@ -72,9 +72,3 @@ baselines:
       The recent-past period of IPCC AR6 and the CMIP6 projection baseline.
     reference: IPCC AR6 WGI Chapter 2
     reference_url: https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-2/
-    assessed:
-      - source: IPCC AR6 WGI Chapter 2 Executive Summary
-        since: "1850-1900"
-        quantity: GMST
-        central: 0.85
-        very_likely: [0.69, 0.95]

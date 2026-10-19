@@ -2,7 +2,7 @@
 
 import calendar
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
@@ -45,16 +45,12 @@ class Baseline:
     use: str
     reference: str
     reference_url: str | None = None
-    assessed: tuple[dict, ...] = field(default_factory=tuple)
 
 
 def load_baselines(path: Path) -> tuple[list[Baseline], str]:
     """Read the baseline definitions and the bridge period from ``baselines.yaml``."""
     config = yaml.safe_load(path.read_text())
-    baselines = [
-        Baseline(**{**entry, "assessed": tuple(entry.get("assessed", ()))})
-        for entry in config["baselines"]
-    ]
+    baselines = [Baseline(**entry) for entry in config["baselines"]]
     ids = [b.id for b in baselines]
     if len(set(ids)) != len(ids):
         raise ValueError(f"baseline ids repeat: {ids}")
@@ -64,6 +60,40 @@ def load_baselines(path: Path) -> tuple[list[Baseline], str]:
     if config["bridge"] not in ids:
         raise ValueError(f"bridge {config['bridge']} is not a declared baseline")
     return baselines, config["bridge"]
+
+
+@dataclass(frozen=True)
+class Assessment:
+    """A published warming estimate for one period above one baseline."""
+
+    source: str
+    reference: str
+    reference_url: str
+    quantity: str
+    since: str
+    period: str
+    central: float
+    very_likely: tuple[float, float] | None = None
+    dataset: str | None = None
+
+    @property
+    def years(self) -> tuple[int, int]:
+        """The first and last year of the assessed period."""
+        start, end = self.period.split("-")
+        return int(start), int(end)
+
+
+def load_assessments(path: Path, baselines: list[Baseline]) -> list[Assessment]:
+    """Read ``assessments.yaml``, refusing an estimate against a baseline the book lacks."""
+    ids = {b.id for b in baselines}
+    assessments = []
+    for entry in yaml.safe_load(path.read_text())["assessments"]:
+        very_likely = entry.get("very_likely")
+        assessment = Assessment(**{**entry, "very_likely": very_likely and tuple(very_likely)})
+        if assessment.since not in ids:
+            raise ValueError(f"{assessment.since} is not a baseline in baselines.yaml")
+        assessments.append(assessment)
+    return assessments
 
 
 def _monthly_from_wide(frame: pd.DataFrame, statistic: str = "central") -> pd.DataFrame:
@@ -323,6 +353,51 @@ def rebase(native: pd.DataFrame, offsets: pd.DataFrame) -> pd.DataFrame:
     return merged[[*columns, *rest, "value"]]
 
 
+MEAN_OF_DATASETS = "Mean of datasets"
+
+
+def compare_assessments(annual: pd.DataFrame, assessments: list[Assessment]) -> pd.DataFrame:
+    """Set each dataset's mean over an assessed period beside the published estimate.
+
+    A multi-dataset estimate is compared with every dataset covering the period and with their mean.
+    A dataset's own estimate is compared with that dataset alone.
+    """
+    central = annual[annual["statistic"] == "central"]
+    rows = []
+    for a in assessments:
+        start, end = a.years
+        window = central[(central["baseline"] == a.since) & central["year"].between(start, end)]
+        stats = window.groupby("dataset")["value"].agg(["mean", "size"])
+        means = stats.loc[stats["size"] == end - start + 1, "mean"]
+        if a.dataset is not None:
+            if a.dataset not in means:
+                raise ValueError(f"{a.dataset} does not cover {a.period} for {a.reference}")
+            observed = {a.dataset: means[a.dataset]}
+        else:
+            observed = {**means.to_dict(), MEAN_OF_DATASETS: means.mean()}
+        low, high = a.very_likely or (None, None)
+        rows += [
+            {
+                "source": a.source,
+                "reference": a.reference,
+                "reference_url": a.reference_url,
+                "quantity": a.quantity,
+                "since": a.since,
+                "period": a.period,
+                "assessed_dataset": a.dataset or "all",
+                "assessed": a.central,
+                "assessed_low": low,
+                "assessed_high": high,
+                "dataset": dataset,
+                "observed": value,
+                "difference": value - a.central,
+                "within_range": None if low is None else bool(low <= round(value, 2) <= high),
+            }
+            for dataset, value in observed.items()
+        ]
+    return pd.DataFrame(rows).round({"observed": DECIMALS, "difference": DECIMALS})
+
+
 def to_timeseries(annual: pd.DataFrame) -> pd.DataFrame:
     """Pivot a long annual frame into the Bookshelf wide timeseries shape."""
     dims = [c for c in annual.columns if c not in ("year", "value")]
@@ -348,6 +423,7 @@ def render_readme(  # noqa: PLR0913
     monthly: pd.DataFrame,
     annual: pd.DataFrame,
     offsets: pd.DataFrame,
+    comparison: pd.DataFrame,
     sources: Mapping,
 ) -> str:
     """Write the README that ships in the book, defining every baseline and offset."""
@@ -441,13 +517,6 @@ def render_readme(  # noqa: PLR0913
             f"Reference: {reference}.",
             "",
         ]
-        for a in b.assessed:
-            low, high = a["very_likely"]
-            out += [
-                f"{a['source']} assesses {a['quantity']} in {b.id} as {a['central']} K "
-                f"[{low} to {high}] above {a['since']} (very likely range).",
-                "",
-            ]
 
     out += [
         "## Offsets",
@@ -494,6 +563,36 @@ def render_readme(  # noqa: PLR0913
             "",
         ]
 
+    out += [
+        "## Comparison with assessments",
+        "",
+        "Each dataset's mean over a period, on the assessment's baseline,",
+        "beside the published estimate and its very likely range.",
+        "Estimates for one dataset come from the version the assessment used,",
+        "so a later version is expected to differ.",
+        "",
+        _table(
+            ["Source", "Period", "Since", "Assessed (K)", "Dataset", "This book (K)", "Difference"],
+            [
+                [
+                    f"[{c.source}, {c.reference}]({c.reference_url})",
+                    c.period,
+                    c.since,
+                    f"{c.assessed:.2f}"
+                    + (
+                        ""
+                        if pd.isna(c.assessed_low)
+                        else f" [{c.assessed_low:.2f} to {c.assessed_high:.2f}]"
+                    ),
+                    c.dataset,
+                    f"{c.observed:.2f}",
+                    f"{c.difference:+.2f}",
+                ]
+                for c in comparison.itertuples()
+            ],
+        ),
+        "",
+    ]
     out += [
         "## Sources",
         "",
