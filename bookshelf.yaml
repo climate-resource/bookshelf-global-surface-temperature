@@ -64,6 +64,20 @@ defaults:
       type: tabular
       license: LicenseRef-Japan-Public-Data-License-1.0
       license_url: https://www.jma.go.jp/jma/en/copyright.html
+    ar6_datasets:
+      type: tabular
+      license: CC-BY-4.0
+      license_url: https://creativecommons.org/licenses/by/4.0/
+      citation: >-
+        Trewin, B., Kaufman, D., Fawcett, R. and Kennedy, J. (2023), IPCC AR6 WGI Chapter 2,
+        input data for Figure 2.11 (v20220428), https://doi.org/10.5285/033cd690801741c9bc745b8da55faef4
+    ar6_mean:
+      type: tabular
+      license: CC-BY-4.0
+      license_url: https://creativecommons.org/licenses/by/4.0/
+      citation: >-
+        Kaufman, D., Trewin, B., Fawcett, R., Kennedy, J. and Neukom, R. (2022), IPCC AR6 WGI Chapter 2,
+        data for Figure 2.11 (v20220510), https://doi.org/10.5285/f3515388768344bfb2be0521f82388be
     sources:
       type: document
       description: The upstream URL and sha256 of every file in the snapshot, and when it was taken.
@@ -73,6 +87,22 @@ build:
 
 # One book per monthly snapshot, taken with `scripts/snapshot.py`.
 books:
+  - version: "2021.08"
+    description: >-
+      The observations behind IPCC AR6 WGI, as archived with AR6 Figure 2.11:
+      annual GMST for 1850-2020 from HadCRUT 5.0, NOAAGlobalTemp-Interim, Berkeley Earth
+      and Kadow et al., and AR6's assessed mean of the four.
+      Annual values only, so the monthly entries are empty.
+    release_date: 2021-08-09
+    citation: >-
+      Gulev, S.K., Thorne, P.W., et al. (2021), Changing State of the Climate System.
+      In Climate Change 2021: The Physical Science Basis, https://doi.org/10.1017/9781009157896.004
+    license: CC-BY-4.0
+    license_url: https://creativecommons.org/licenses/by/4.0/
+    resources:
+      ar6_datasets: {path: inputs/2021.08/Figure_2_11c-lower_panel.csv}
+      ar6_mean: {path: inputs/2021.08/Figure2_11_panel_a.csv}
+      sources: {path: inputs/2021.08/sources.json}
   - version: "2026.10"
     license: CC-BY-4.0
     license_url: https://creativecommons.org/licenses/by/4.0/

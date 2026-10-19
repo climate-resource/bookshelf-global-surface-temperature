@@ -1,0 +1,13 @@
+{
+  "retrieved": "2026-10-19T07:22:15+00:00",
+  "files": {
+    "Figure_2_11c-lower_panel.csv": {
+      "url": "https://dap.ceda.ac.uk/badc/ar6_wg1/data/ch_02/ch2_fig11/v20211207/Figure_2_11c-lower_panel.csv",
+      "sha256": "4fa631038a7fa26979b7d0b29fc20b2edc98cb71e25bfd59028684fe58952c47"
+    },
+    "Figure2_11_panel_a.csv": {
+      "url": "https://dap.ceda.ac.uk/badc/ar6_wg1/data/ch_02/ch2_fig11/v20220510/Figure2_11_panel_a.csv",
+      "sha256": "b75350acfd03fad00903bc9cb59dc6bd215721c8288750fd710b1dd748146032"
+    }
+  }
+}
