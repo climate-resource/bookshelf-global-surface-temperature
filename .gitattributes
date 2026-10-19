@@ -1,0 +1,2 @@
+# Upstream snapshots are kept byte for byte, so sources.json digests still match.
+inputs/** -text
