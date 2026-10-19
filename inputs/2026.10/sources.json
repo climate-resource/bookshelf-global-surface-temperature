@@ -1,0 +1,45 @@
+{
+  "retrieved": "2026-10-19T06:17:45+00:00",
+  "files": {
+    "hadcrut5_monthly.csv": {
+      "url": "https://hadleyserver.metoffice.gov.uk/hadcrut5/data/HadCRUT.5.2.0.0/analysis/diagnostics/HadCRUT.5.2.0.0.analysis.summary_series.global.monthly.csv",
+      "sha256": "dd4449a3e25b75396ec4f0445f8647e5b9f5a10f3993929fb82918f3ec135dd1"
+    },
+    "hadcrut5_annual.csv": {
+      "url": "https://hadleyserver.metoffice.gov.uk/hadcrut5/data/HadCRUT.5.2.0.0/analysis/diagnostics/HadCRUT.5.2.0.0.analysis.summary_series.global.annual.csv",
+      "sha256": "7f750b673bb34aad722736ee21f122b5ea692c99877fa0b1066df65e51f32c04"
+    },
+    "gistemp.csv": {
+      "url": "https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv",
+      "sha256": "4c64eda288bce32b8d76926278f346ecea1e53506df8ee72a3d5accb0657c416"
+    },
+    "berkeley_monthly.txt": {
+      "url": "https://storage.googleapis.com/berkeley-earth-temperature-hr/global/Global_TAVG_monthly.txt",
+      "sha256": "587c2143f4de5e5c6ebf61c542ed3ded74f5a01551281364348f522b4ab183c0"
+    },
+    "berkeley_annual.txt": {
+      "url": "https://storage.googleapis.com/berkeley-earth-temperature-hr/global/Global_TAVG_annual.txt",
+      "sha256": "dc0e317295dfc047fb28d5b8d263c1e657486ed01bbc6a2cbb8782d1e6ae631e"
+    },
+    "era5_daily.csv": {
+      "url": "https://sites.ecmwf.int/data/climatepulse/data/series/era5_daily_series_2t_global.csv",
+      "sha256": "7419051a24834966b7decca18e037e200f2ed8c98ce925296de0e691c7f07e70"
+    },
+    "jma_monthly.csv": {
+      "url": "https://ds.data.jma.go.jp/tcc/tcc/products/gwp/temp/list/csv/mon_wld.csv",
+      "sha256": "9bab99e8508a1f7505432ba780535c07dadbdc6b6161d826315465eeabf9b66e"
+    },
+    "jma_annual.csv": {
+      "url": "https://ds.data.jma.go.jp/tcc/tcc/products/gwp/temp/list/csv/year_wld.csv",
+      "sha256": "fd3f81b9bb197ef9e1067be085314ce08905992e0341d064d9ed0721f0d9c306"
+    },
+    "noaaglobaltemp_monthly.asc": {
+      "url": "https://www.ncei.noaa.gov/data/noaa-global-surface-temperature/v6.1/access/timeseries/aravg.mon.land_ocean.90S.90N.v6.1.0.202609.asc",
+      "sha256": "44094c6b7052730eb64038b948686d67059e7d021f6c604f3978a99015fe8f46"
+    },
+    "noaaglobaltemp_annual.asc": {
+      "url": "https://www.ncei.noaa.gov/data/noaa-global-surface-temperature/v6.1/access/timeseries/aravg.ann.land_ocean.90S.90N.v6.1.0.202609.asc",
+      "sha256": "74539ba18ba28c7c4d68abb008db8e1a1d9ccce2f3de80fa57466b788b3e738c"
+    }
+  }
+}

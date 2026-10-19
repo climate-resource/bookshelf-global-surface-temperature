@@ -1,0 +1,96 @@
+# The recipe carries every fact about the books this feedstock produces.
+# Format: https://github.com/climate-resource/bookshelf/blob/main/docs/explanation/recipe-format.md
+volume:
+  name: global-surface-temperature
+  maintainers:
+    - name: Jared Lewis
+      email: jared.lewis@climate-resource.com
+  keywords: [climate, temperature, gmst, gsat, observations, warming]
+  update_cadence: monthly
+
+defaults:
+  title: Global surface temperature
+  description: >-
+    Observed global mean surface temperature anomalies from HadCRUT5, NOAAGlobalTemp,
+    GISTEMP, Berkeley Earth, ERA5 and JMA.
+    Each series is published on its native baseline and on a common set of baselines
+    drawn from IPCC AR6 and WMO, with the offsets between them and a README defining both.
+  publisher: Climate Resource
+  repository_url: https://github.com/climate-resource/bookshelf-global-surface-temperature
+  # Berkeley Earth's high-resolution series is preliminary and non-commercial.
+  visibility: org
+  authors:
+    - name: Jared Lewis
+      email: jared.lewis@climate-resource.com
+  intended_uses: >-
+    Comparing observed warming across datasets on a consistent baseline,
+    and putting observations alongside projections referenced to 1850-1900 or 1995-2014.
+  limitations: >-
+    Each book is one monthly snapshot of operational products that revise their history.
+    Bounds are shifted with the central value and leave out baseline-mean uncertainty.
+    JRA-3Q, DCENT, China-MST and Kadow et al. are not yet included.
+  resources:
+    hadcrut5_monthly:
+      type: tabular
+      license: OGL-UK-3.0
+      citation: Morice et al. (2021), https://doi.org/10.1029/2019JD032361
+    hadcrut5_annual:
+      type: tabular
+      license: OGL-UK-3.0
+      citation: Morice et al. (2021), https://doi.org/10.1029/2019JD032361
+    noaaglobaltemp_monthly:
+      type: document
+      license: LicenseRef-US-Government-Public-Domain
+      citation: Huang et al. (2025), NOAAGlobalTemp v6.1
+    noaaglobaltemp_annual:
+      type: document
+      license: LicenseRef-US-Government-Public-Domain
+      citation: Huang et al. (2025), NOAAGlobalTemp v6.1
+    gistemp:
+      type: tabular
+      license: LicenseRef-US-Government-Public-Domain
+      citation: GISTEMP Team (2026), GISS Surface Temperature Analysis v4, https://data.giss.nasa.gov/gistemp/
+    berkeley_monthly:
+      type: document
+      license: CC-BY-NC-4.0
+      citation: Berkeley Earth high-resolution dataset (preliminary), https://berkeleyearth.org/data/
+    berkeley_annual:
+      type: document
+      license: CC-BY-NC-4.0
+      citation: Berkeley Earth high-resolution dataset (preliminary), https://berkeleyearth.org/data/
+    era5_daily:
+      type: tabular
+      license: CC-BY-4.0
+      citation: Copernicus Climate Change Service, Climate Pulse, https://pulse.climate.copernicus.eu/
+    jma_monthly:
+      type: tabular
+      license: LicenseRef-JMA-Terms-of-Use
+      license_url: https://www.jma.go.jp/jma/en/copyright.html
+    jma_annual:
+      type: tabular
+      license: LicenseRef-JMA-Terms-of-Use
+      license_url: https://www.jma.go.jp/jma/en/copyright.html
+    sources:
+      type: document
+      description: The upstream URL and sha256 of every file in the snapshot, and when it was taken.
+
+build:
+  notebook: build.py
+
+# One book per monthly snapshot, taken with `scripts/snapshot.py`.
+books:
+  - version: "2026.10"
+    license: CC-BY-NC-4.0
+    license_url: https://creativecommons.org/licenses/by-nc/4.0/
+    resources:
+      hadcrut5_monthly: {path: inputs/2026.10/hadcrut5_monthly.csv}
+      hadcrut5_annual: {path: inputs/2026.10/hadcrut5_annual.csv}
+      noaaglobaltemp_monthly: {path: inputs/2026.10/noaaglobaltemp_monthly.asc}
+      noaaglobaltemp_annual: {path: inputs/2026.10/noaaglobaltemp_annual.asc}
+      gistemp: {path: inputs/2026.10/gistemp.csv}
+      berkeley_monthly: {path: inputs/2026.10/berkeley_monthly.txt}
+      berkeley_annual: {path: inputs/2026.10/berkeley_annual.txt}
+      era5_daily: {path: inputs/2026.10/era5_daily.csv}
+      jma_monthly: {path: inputs/2026.10/jma_monthly.csv}
+      jma_annual: {path: inputs/2026.10/jma_annual.csv}
+      sources: {path: inputs/2026.10/sources.json}

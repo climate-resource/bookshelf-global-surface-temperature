@@ -1,0 +1,80 @@
+# The reference periods every output is published against.
+# Adding one adds rows to `annual`, `monthly` and `offsets`, and a section to the README.
+# The entry names in the book never change, so a consumer never has to follow a rename.
+
+# A dataset that starts after a baseline reaches it through this period instead.
+bridge: "1981-2010"
+
+baselines:
+  - id: "1850-1900"
+    start: 1850
+    end: 1900
+    name: Pre-industrial proxy
+    use: >-
+      The earliest period with near-global instrumental coverage.
+      IPCC AR6 uses it to approximate pre-industrial conditions,
+      and the Paris Agreement temperature goals are read against it.
+    reference: IPCC AR6 WGI Cross-Chapter Box 1.2
+    reference_url: https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-1/
+
+  - id: "1951-1980"
+    start: 1951
+    end: 1980
+    name: GISTEMP and Berkeley Earth native period
+    use: >-
+      The period NASA GISTEMP and Berkeley Earth publish their anomalies against.
+    reference: Lenssen et al. (2019), Rohde and Hausfather (2020)
+
+  - id: "1961-1990"
+    start: 1961
+    end: 1990
+    name: WMO climatological standard normal (former)
+    use: >-
+      The WMO standard normal before 1991-2020 and the period HadCRUT5 publishes against.
+      WMO keeps it as the reference for long-term climate change assessment.
+    reference: WMO-No. 1203 (2017)
+    reference_url: https://library.wmo.int/idurl/4/55797
+
+  - id: "1981-2010"
+    start: 1981
+    end: 2010
+    name: WMO climate normal
+    use: >-
+      The period WMO's State of the Global Climate bridges through to reach 1850-1900.
+      AR6 gives it the same warming above 1850-1900 as 1986-2005.
+    reference: IPCC AR6 WGI Figure 1.12
+    reference_url: https://www.ipcc.ch/report/ar6/wg1/figures/chapter-1/figure-1-12/
+
+  - id: "1986-2005"
+    start: 1986
+    end: 2005
+    name: AR5 recent past
+    use: >-
+      The recent-past period of IPCC AR5 and SR1.5, and the CMIP5 projection baseline.
+    reference: IPCC AR6 WGI Cross-Chapter Box 2.3
+    reference_url: https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-2/
+
+  - id: "1991-2020"
+    start: 1991
+    end: 2020
+    name: WMO climatological standard normal
+    use: >-
+      The current WMO standard normal.
+      NOAAGlobalTemp, ERA5 and JMA publish their anomalies against it.
+    reference: WMO-No. 1203 (2017)
+    reference_url: https://library.wmo.int/idurl/4/55797
+
+  - id: "1995-2014"
+    start: 1995
+    end: 2014
+    name: AR6 recent past
+    use: >-
+      The recent-past period of IPCC AR6 and the CMIP6 projection baseline.
+    reference: IPCC AR6 WGI Chapter 2
+    reference_url: https://www.ipcc.ch/report/ar6/wg1/chapter/chapter-2/
+    assessed:
+      - source: IPCC AR6 WGI Chapter 2 Executive Summary
+        since: "1850-1900"
+        quantity: GMST
+        central: 0.85
+        very_likely: [0.69, 0.95]

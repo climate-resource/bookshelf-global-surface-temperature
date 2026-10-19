@@ -1,0 +1,11 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v0.7.0
+_src_path: https://github.com/climate-resource/copier-bookshelf-dataset.git
+author: Jared Lewis
+author_email: jared.lewis@climate-resource.com
+dataset_description: Observed global mean surface temperature from the major datasets,
+    on their native and common baselines.
+dataset_name: global-surface-temperature
+dataset_name_human: Global Surface Temperature
+extra_recipes: []
+project_url: https://github.com/climate-resource/bookshelf-global-surface-temperature

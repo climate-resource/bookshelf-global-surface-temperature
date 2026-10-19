@@ -1,0 +1,15 @@
+[project]
+name = "bookshelf-global-surface-temperature"
+version = "0.1.0"
+description = "Observed global mean surface temperature from the major datasets, on their native and common baselines."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "bookshelf[publish]>=1.0,<2",
+    "pandas>=2.2",
+    "pyyaml>=6",
+]
+
+[tool.uv]
+exclude-newer = "3 days"
+exclude-newer-package = { bookshelf = false }
