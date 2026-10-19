@@ -12,6 +12,7 @@ from pathlib import Path
 import bookshelf
 
 from surface_temperature import (
+    BOOK_DATASETS,
     DATASETS,
     compare_assessments,
     compute_offsets,
@@ -25,13 +26,15 @@ from surface_temperature import (
 
 # %%
 build = bookshelf.setup()
+version = build.book.metadata.version
+datasets = BOOK_DATASETS.get(version, DATASETS)
 baselines, bridge = load_baselines(Path("baselines.yaml"))
 assessments = load_assessments(Path("assessments.yaml"), baselines)
 
 # %%
-names = [name for d in DATASETS for name in d.inputs]
+names = list(dict.fromkeys(name for d in datasets for name in d.inputs))
 inputs = {name: build.use(name) for name in [*names, "sources"]}
-native_monthly, native_annual = read_native({name: inputs[name].path for name in names})
+native_monthly, native_annual = read_native({name: inputs[name].path for name in names}, datasets)
 native_annual.groupby(["dataset", "statistic"])["year"].agg(["min", "max", "size"])
 
 # %% [markdown]
@@ -63,7 +66,8 @@ build.book.write("offsets", offsets, type="tabular", used=used)
 build.book.write("assessments", comparison, type="tabular", used=used)
 
 readme = render_readme(
-    version=build.book.metadata.version,
+    version=version,
+    datasets=datasets,
     baselines=baselines,
     bridge_id=bridge,
     monthly=native_monthly,

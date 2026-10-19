@@ -1,7 +1,7 @@
 """Parse the upstream global series and rebase them onto common baselines."""
 
 import calendar
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -180,6 +180,37 @@ def parse_jma(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
     return _monthly_from_wide(monthly), annual
 
 
+_NO_MONTHLY = pd.DataFrame(columns=["year", "month", "statistic", "value"])
+
+
+def _read_ar6_datasets(path: Path) -> pd.DataFrame:
+    table = pd.read_csv(path, dtype={0: str})
+    table = table.rename(columns={table.columns[0]: "year"})
+    # The file ends with decadal means labelled like 2011-20.
+    return table[table["year"].str.fullmatch(r"\d{4}")].astype({"year": int})
+
+
+def _ar6_parser(column: str, *, bounds: bool = False) -> Parser:
+    """Read one dataset's annual series from AR6 Figure 2.11c, already on 1850-1900."""
+
+    def parse(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
+        table = _read_ar6_datasets(paths["ar6_datasets"])
+        annual = pd.DataFrame({"year": table["year"], "central": table[column]})
+        if bounds:
+            annual["lower"] = table["HadCRUT confidence limit lower"]
+            annual["upper"] = table["HadCRUT confidence limit upper"]
+        return _NO_MONTHLY, _bounds(annual, ["year"])
+
+    return parse
+
+
+def parse_ar6_mean(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Read AR6's assessed four-dataset mean from Figure 2.11a."""
+    table = pd.read_csv(paths["ar6_mean"], skiprows=1).iloc[:, :2]
+    table.columns = ["year", "value"]
+    return _NO_MONTHLY, table.assign(statistic="central")
+
+
 DATASETS = (
     Dataset(
         id="HadCRUT5",
@@ -266,19 +297,91 @@ DATASETS = (
 )
 
 
-def read_native(paths: Mapping[str, Path]) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Read every dataset into long monthly and annual frames on its native baseline.
+_AR6 = {
+    "native_baseline": "1850-1900",
+    "quantity": "GMST",
+    "licence": "CC-BY-4.0 (IPCC AR6 WGI data archived at CEDA)",
+    "homepage": "https://doi.org/10.5285/033cd690801741c9bc745b8da55faef4",
+    "attribution": (
+        "Contains IPCC AR6 WGI data archived at CEDA under CC-BY-4.0:",
+        "Trewin, B., Kaufman, D., Fawcett, R. and Kennedy, J. (2023), Chapter 2 of the WGI",
+        "Contribution to the IPCC AR6, input data for Figure 2.11 (v20220428),",
+        "https://doi.org/10.5285/033cd690801741c9bc745b8da55faef4, and data for Figure 2.11",
+        "(v20220510), https://doi.org/10.5285/f3515388768344bfb2be0521f82388be.",
+        "Report: Gulev, S.K., Thorne, P.W., et al. (2021), Changing State of the Climate System,",
+        "Climate Change 2021: The Physical Science Basis, https://doi.org/10.1017/9781009157896.004.",
+    ),
+    "notes": "The version AR6 used, as archived with AR6 Figure 2.11. Annual values to 2020.",
+}
 
-    An annual value is kept only for a year with all twelve monthly values,
+AR6_DATASETS = (
+    Dataset(
+        id="HadCRUT5",
+        name="HadCRUT 5.0 as used in AR6",
+        producer="Met Office Hadley Centre and Climatic Research Unit, University of East Anglia",
+        inputs=("ar6_datasets",),
+        parse=_ar6_parser("HadCRUT", bounds=True),
+        uncertainty="2.5% and 97.5% limits",
+        **_AR6,
+    ),
+    Dataset(
+        id="NOAAGlobalTemp",
+        name="NOAAGlobalTemp-Interim as used in AR6",
+        producer="NOAA National Centers for Environmental Information",
+        inputs=("ar6_datasets",),
+        parse=_ar6_parser("NOAA"),
+        uncertainty="None",
+        **_AR6,
+    ),
+    Dataset(
+        id="Berkeley Earth",
+        name="Berkeley Earth as used in AR6",
+        producer="Berkeley Earth",
+        inputs=("ar6_datasets",),
+        parse=_ar6_parser("Berkeley"),
+        uncertainty="None",
+        **_AR6,
+    ),
+    Dataset(
+        id="Kadow et al.",
+        name="Kadow et al. (2020) infilled reconstruction as used in AR6",
+        producer="Kadow, Hall and Ulbrich (2020)",
+        inputs=("ar6_datasets",),
+        parse=_ar6_parser("Kadow"),
+        uncertainty="None",
+        **_AR6,
+    ),
+    Dataset(
+        id="AR6 assessed mean",
+        name="AR6 assessed mean of the four datasets",
+        producer="IPCC AR6 WGI",
+        inputs=("ar6_mean",),
+        parse=parse_ar6_mean,
+        uncertainty="None",
+        **_AR6,
+    ),
+)
+
+# A book reads the open datasets unless its version is listed here.
+BOOK_DATASETS = {"2021.08": AR6_DATASETS}
+
+
+def read_native(
+    paths: Mapping[str, Path], datasets: Sequence[Dataset]
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Read each dataset into long monthly and annual frames on its native baseline.
+
+    Where a dataset has monthly values, an annual value is kept only for a year with all twelve,
     because several producers publish a year-to-date mean for the current year.
     """
     monthly, annual = [], []
-    for d in DATASETS:
+    for d in datasets:
         m, a = d.parse({name: paths[name] for name in d.inputs})
         m = m.dropna(subset=["value"]).astype({"year": int, "month": int})
         a = a.dropna(subset=["value"]).astype({"year": int})
-        months = m[m["statistic"] == "central"].groupby("year").size()
-        a = a[a["year"].isin(months[months == len(MONTHS)].index)]
+        if len(m):
+            months = m[m["statistic"] == "central"].groupby("year").size()
+            a = a[a["year"].isin(months[months == len(MONTHS)].index)]
         meta = {"dataset": d.id, "quantity": d.quantity, "baseline": d.native_baseline}
         monthly.append(m.assign(**meta))
         annual.append(a.assign(**meta))
@@ -418,6 +521,7 @@ def _table(header: list[str], rows: list[list[object]]) -> str:
 def render_readme(  # noqa: PLR0913
     *,
     version: str,
+    datasets: Sequence[Dataset],
     baselines: list[Baseline],
     bridge_id: str,
     monthly: pd.DataFrame,
@@ -467,10 +571,10 @@ def render_readme(  # noqa: PLR0913
         "",
     ]
     rows = []
-    for d in DATASETS:
+    for d in datasets:
         a = annual[(annual["dataset"] == d.id) & (annual["statistic"] == "central")]
         m = monthly[(monthly["dataset"] == d.id) & (monthly["statistic"] == "central")]
-        last = m.sort_values(["year", "month"]).iloc[-1]
+        latest = m.sort_values(["year", "month"]).tail(1)
         rows.append(
             [
                 d.id,
@@ -478,7 +582,9 @@ def render_readme(  # noqa: PLR0913
                 d.quantity,
                 d.native_baseline,
                 f"{a['year'].min()}-{a['year'].max()}",
-                f"{int(last['year'])}-{int(last['month']):02d}",
+                "annual only"
+                if latest.empty
+                else f"{int(latest['year'].iloc[0])}-{int(latest['month'].iloc[0]):02d}",
                 d.uncertainty,
                 d.licence,
             ]
@@ -504,7 +610,7 @@ def render_readme(  # noqa: PLR0913
         "",
     ]
     out += [
-        f"- **{d.id}**: {d.name}. {d.notes} <{d.homepage}>".replace(".  ", ". ") for d in DATASETS
+        f"- **{d.id}**: {d.name}. {d.notes} <{d.homepage}>".replace(".  ", ". ") for d in datasets
     ]
     out += ["", "## Baselines", ""]
     for b in baselines:
@@ -547,7 +653,7 @@ def render_readme(  # noqa: PLR0913
                 for i in ids
             ),
         ]
-        for d in DATASETS
+        for d in datasets
     ]
     out += [_table(["Dataset", *ids], grid), ""]
     gaps = offsets[offsets["method"] == "bridged"].drop_duplicates("baseline")
@@ -606,7 +712,11 @@ def render_readme(  # noqa: PLR0913
         "This book is CC-BY-4.0.",
         "Each dataset's own licence, listed above, permits redistributing derived data",
         "with attribution, so credit the producers as well as this book.",
-        *(line for d in DATASETS if d.attribution for line in ("", *d.attribution)),
+        *(
+            line
+            for a in dict.fromkeys(d.attribution for d in datasets if d.attribution)
+            for line in ("", *a)
+        ),
         "",
     ]
     return "\n".join(out)

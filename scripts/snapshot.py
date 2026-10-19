@@ -4,6 +4,8 @@ Upstream files are overwritten in place every month,
 so each book reads a checked-in snapshot rather than a live URL.
 
     uv run python scripts/snapshot.py 2026.10
+
+``--ar6`` takes the frozen AR6 WGI files instead, for the 2021.08 book.
 """
 
 import argparse
@@ -25,6 +27,12 @@ FIXED = {
     "era5_daily.csv": "https://sites.ecmwf.int/data/climatepulse/data/series/era5_daily_series_2t_global.csv",
     "jma_monthly.csv": f"{JMA}/mon_wld.csv",
     "jma_annual.csv": f"{JMA}/year_wld.csv",
+}
+
+AR6 = "https://dap.ceda.ac.uk/badc/ar6_wg1/data/ch_02/ch2_fig11"
+AR6_FILES = {
+    "Figure_2_11c-lower_panel.csv": f"{AR6}/v20211207/Figure_2_11c-lower_panel.csv",
+    "Figure2_11_panel_a.csv": f"{AR6}/v20220510/Figure2_11_panel_a.csv",
 }
 
 
@@ -50,15 +58,17 @@ def noaa_urls() -> dict[str, str]:
 def main() -> None:
     """Write the snapshot and a ``sources.json`` recording where each file came from."""
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--ar6", action="store_true", help="take the AR6 WGI files")
     parser.add_argument("version", help="the book version, the snapshot month as YYYY.MM")
-    version = parser.parse_args().version
+    args = parser.parse_args()
+    version = args.version
     if not re.fullmatch(r"\d{4}\.\d{2}", version):
         parser.error("version must be YYYY.MM")
 
     target = Path(__file__).parent.parent / "inputs" / version
     target.mkdir(parents=True, exist_ok=False)
     sources = {}
-    for name, url in {**FIXED, **noaa_urls()}.items():
+    for name, url in (AR6_FILES if args.ar6 else {**FIXED, **noaa_urls()}).items():
         data = fetch(url)
         (target / name).write_bytes(data)
         sources[name] = {"url": url, "sha256": hashlib.sha256(data).hexdigest()}
