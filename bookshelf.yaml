@@ -27,7 +27,6 @@ defaults:
   limitations: >-
     Each book is one monthly snapshot of operational products that revise their history.
     Bounds are shifted with the central value and leave out baseline-mean uncertainty.
-    Berkeley Earth is left out because its CC-BY-NC licence would carry into every derived entry.
     JRA-3Q, DCENT, China-MST and Kadow et al. are not yet included.
   resources:
     hadcrut5_monthly:
